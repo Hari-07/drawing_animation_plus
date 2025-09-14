@@ -5,8 +5,8 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "example_01",
-      "cwd": "example/example_01",
+      "name": "example",
+      "cwd": "example/example",
       "request": "launch",
       "type": "dart"
     },
