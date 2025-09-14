@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'debug.dart';
 import 'line_animation.dart';
 import 'painter.dart';
@@ -12,6 +13,8 @@ class PathPainterBuilder {
   void Function(int currentPaintedPathIndex)? onFinishFrame;
   late bool scaleToViewport;
   late DebugOptions debugOptions;
+  late List<Path> paths;
+  @Deprecated('Use [paths] instead')
   late List<PathSegment> pathSegments;
   late LineAnimation lineAnimation;
   late Animation<double> animation;
@@ -20,7 +23,7 @@ class PathPainterBuilder {
   PathPainter build() {
     switch (lineAnimation) {
       case LineAnimation.oneByOne:
-        return OneByOnePainter(animation, pathSegments, customDimensions,
+        return OneByOnePainter(animation, pathSegments, paths, customDimensions,
             paints, onFinishFrame, scaleToViewport, debugOptions);
       case LineAnimation.allAtOnce:
         return AllAtOncePainter(animation, pathSegments, customDimensions,
@@ -56,7 +59,12 @@ class PathPainterBuilder {
     debugOptions = debug;
   }
 
+  @Deprecated('Use [setPath] instead')
   void setPathSegments(List<PathSegment> pathSegments) {
     this.pathSegments = pathSegments;
+  }
+
+  void setPaths(List<Path> paths) {
+    this.paths = paths;
   }
 }

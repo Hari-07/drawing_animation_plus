@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 
 import 'debug.dart';
 import 'parser.dart';
-import 'path_order.dart';
 import 'types.dart';
 
 /// Paints a list of [PathSegment] to canvas
@@ -20,7 +19,7 @@ class PaintedPainter extends PathPainter {
       PaintedSegmentCallback? onFinishCallback,
       bool scaleToViewport,
       DebugOptions debugOptions)
-      : super(animation, pathSegments, customDimensions, paints,
+      : super(animation, pathSegments, null, customDimensions, paints,
             onFinishCallback, scaleToViewport, debugOptions);
 
   @override
@@ -38,9 +37,6 @@ class PaintedPainter extends PathPainter {
               ..strokeWidth = segment.strokeWidth);
         canvas.drawPath(segment.path, paint);
       });
-
-      //No callback etc. needed
-      // super.onFinish(canvas, size);
     }
   }
 }
@@ -55,7 +51,7 @@ class AllAtOncePainter extends PathPainter {
       PaintedSegmentCallback? onFinishCallback,
       bool scaleToViewport,
       DebugOptions debugOptions)
-      : super(animation, pathSegments, customDimensions, paints,
+      : super(animation, pathSegments, null, customDimensions, paints,
             onFinishCallback, scaleToViewport, debugOptions);
 
   @override
@@ -89,15 +85,16 @@ class OneByOnePainter extends PathPainter {
   OneByOnePainter(
       Animation<double> animation,
       List<PathSegment> pathSegments,
+      List<Path> paths,
       Size? customDimensions,
       List<Paint> paints,
       PaintedSegmentCallback? onFinishCallback,
       bool scaleToViewport,
       DebugOptions debugOptions)
       : totalPathSum = 0,
-        super(animation, pathSegments, customDimensions, paints,
+        super(animation, pathSegments, paths, customDimensions, paints,
             onFinishCallback, scaleToViewport, debugOptions) {
-    if (this.pathSegments != null) {
+    if (this.paths != null) {
       this.pathSegments!.forEach((e) => totalPathSum += e.length);
     }
   }
@@ -114,6 +111,8 @@ class OneByOnePainter extends PathPainter {
   /// Path segments which will be painted to canvas at current frame
   List<PathSegment> toPaint = <PathSegment>[];
 
+  List<Path> pathToPaint = <Path>[];
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas = super.paintOrDebug(canvas, size);
@@ -121,6 +120,8 @@ class OneByOnePainter extends PathPainter {
     if (canPaint) {
       //[1] Calculate and search for upperBound of total path length which should be painted
       var upperBound = animation.value * totalPathSum;
+      print(
+          'Animation Proceeding: ${animation.value}: ($upperBound / $totalPathSum)');
       var currentIndex = paintedSegmentIndex;
       var currentLength = _paintedLength;
       while (currentIndex < pathSegments!.length - 1) {
@@ -133,49 +134,79 @@ class OneByOnePainter extends PathPainter {
         }
       }
       //[2] Extract subPath of last path which breaks the upperBound
-      var subPathLength = upperBound - currentLength;
-      var lastPathSegment = pathSegments![currentIndex];
+      // var subPathLength = upperBound - currentLength;
+      // var lastPathSegment = pathSegments![currentIndex];
 
-      var subPath = lastPathSegment.path
-          .computeMetrics()
-          .first
-          .extractPath(0, subPathLength);
-      paintedSegmentIndex = currentIndex;
-      _paintedLength = currentLength;
-      // //[3] Paint all selected paths to canvas
-      Paint paint;
-      late Path tmp;
-      if (animation.value == 1.0) {
-        //hotfix: to ensure callback for last segment TODO not pretty
-        toPaint.clear();
-        toPaint.addAll(pathSegments!);
-      } else {
-        //[3.1] Add last subPath temporarily
-        tmp = Path.from(lastPathSegment.path);
-        lastPathSegment.path = subPath;
-        toPaint.add(lastPathSegment);
-      }
-      //[3.2] Restore rendering order - last path element in original PathOrder should be last painted -> most visible
-      //[3.3] Paint elements
-      (toPaint..sort(Extractor.getComparator(PathOrders.original)))
-          .forEach((segment) {
-        paint = (paints.isNotEmpty)
-            ? paints[segment.pathIndex % paints.length]
-            : (Paint() //Paint per path TODO implement Paint per PathSegment?
-              //TODO Debug disappearing first lineSegment
-              // ..color = (segment.relativeIndex == 0 && segment.pathIndex== 0) ? Colors.red : ((segment.relativeIndex == 1) ? Colors.blue : segment.color)
-              ..color = segment.color
-              ..style = PaintingStyle.stroke
-              ..strokeCap = StrokeCap.square
-              ..strokeWidth = segment.strokeWidth);
-        canvas.drawPath(segment.path, paint);
-      });
+      // var subPath = lastPathSegment.path
+      //     .computeMetrics()
+      //     .first
+      //     .extractPath(0, subPathLength);
+      // paintedSegmentIndex = currentIndex;
+      // _paintedLength = currentLength;
+      // // //[3] Paint all selected paths to canvas
+      // Paint paint;
+      // late Path tmp;
+      // if (animation.value == 1.0) {
+      //   //hotfix: to ensure callback for last segment TODO not pretty
+      //   toPaint.clear();
+      //   toPaint.addAll(pathSegments!);
+      // } else {
+      //   //[3.1] Add last subPath temporarily
+      //   tmp = Path.from(lastPathSegment.path);
+      //   lastPathSegment.path = subPath;
+      //   toPaint.add(lastPathSegment);
+      // }
+      // print(toPaint);
+      // //[3.2] Restore rendering order - last path element in original PathOrder should be last painted -> most visible
+      // //[3.3] Paint elements
+      // (toPaint..sort(Extractor.getComparator(PathOrders.original)))
+      //     .forEach((segment) {
+      //   paint = (paints.isNotEmpty)
+      //       ? paints[segment.pathIndex % paints.length]
+      //       : (Paint() //Paint per path TODO implement Paint per PathSegment?
+      //         //TODO Debug disappearing first lineSegment
+      //         // ..color = (segment.relativeIndex == 0 && segment.pathIndex== 0) ? Colors.red : ((segment.relativeIndex == 1) ? Colors.blue : segment.color)
+      //         ..color = segment.color
+      //         ..style = PaintingStyle.stroke
+      //         ..strokeCap = StrokeCap.square
+      //         ..strokeWidth = segment.strokeWidth);
+      //   canvas.drawPath(segment.path, paint);
+      // });
 
-      if (animation.value != 1.0) {
-        //[3.4] Remove last subPath
-        toPaint.remove(lastPathSegment);
-        lastPathSegment.path = tmp;
+      // if (animation.value != 1.0) {
+      //   //[3.4] Remove last subPath
+      //   toPaint.remove(lastPathSegment);
+      //   lastPathSegment.path = tmp;
+      // }
+
+      // TODO(hari): Read this from the SVG
+      final localPaths = paths;
+      if (localPaths == null) {
+        return;
       }
+
+      final partialCombined = Path()..fillType = PathFillType.evenOdd;
+      double drawnLength = 0;
+      for (final path in localPaths) {
+        for (final metric in path.computeMetrics()) {
+          if (upperBound > drawnLength + metric.length) {
+            final partial = metric.extractPath(0, metric.length);
+            partialCombined.addPath(partial, Offset.zero);
+            drawnLength += metric.length;
+          } else {
+            final partial = metric.extractPath(0, upperBound - drawnLength);
+            partialCombined.addPath(partial, Offset.zero);
+            drawnLength += upperBound - drawnLength;
+            break;
+          }
+        }
+
+        // Don't try to draw subsequent paths if drawing length has been reached
+        if (drawnLength == upperBound) {
+          break;
+        }
+      }
+      canvas.drawPath(partialCombined, paints[0]);
 
       //TODO Problem: Path drawning is a continous iteration over the length of all segments. To make a callback which fires exactly when path is drawn is therefore not possible (I can only ensure one of the two cases: 1) segment is completely drawn 2) no next segment was started to be drawn yet - For now: 1)
       // double remainingLength = lastPathSegment.length - subPathLength;
@@ -194,6 +225,7 @@ abstract class PathPainter extends CustomPainter {
   PathPainter(
       this.animation,
       this.pathSegments,
+      this.paths,
       this.customDimensions,
       this.paints,
       this.onFinishCallback,
@@ -215,7 +247,10 @@ abstract class PathPainter extends CustomPainter {
   final Animation<double> animation;
 
   /// Each [PathSegment] represents a continuous Path element of the parsed Svg
+  @Deprecated('Use [paths] instead')
   List<PathSegment>? pathSegments;
+
+  List<Path>? paths;
 
   /// Substitutes the paint object for each [PathSegment]
   List<Paint> paints;
@@ -237,11 +272,14 @@ abstract class PathPainter extends CustomPainter {
     var bb = pathSegments!.first.path.getBounds();
     var strokeWidth = 0;
 
-    pathSegments!.forEach((e) {
+    pathSegments?.forEach((e) {
       bb = bb.expandToInclude(e.path.getBounds());
       if (strokeWidth < e.strokeWidth) {
         strokeWidth = e.strokeWidth.toInt();
       }
+    });
+    paths?.forEach((path) {
+      bb = bb.expandToInclude(path.getBounds());
     });
 
     if (paints.isNotEmpty) {

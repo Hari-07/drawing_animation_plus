@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'dart:ui';
-import 'drawing_widget.dart';
+
 import 'debug.dart';
+import 'drawing_widget.dart';
 import 'line_animation.dart';
 import 'painter.dart';
 import 'parser.dart';
+import 'path_order.dart';
 import 'path_painter_builder.dart';
 import 'range.dart';
-import 'path_order.dart';
 
 /// Base class for _AnimatedDrawingState and _AnimatedDrawingWithTickerState
 abstract class AbstractAnimatedDrawingState extends State<AnimatedDrawing> {
@@ -25,11 +25,13 @@ abstract class AbstractAnimatedDrawingState extends State<AnimatedDrawing> {
   DebugOptions? debug;
   int lastPaintedPathIndex = -1;
 
+  List<Path> paths = <Path>[];
+
+  @Deprecated('Use [paths] instead')
   List<PathSegment> pathSegments = <PathSegment>[];
-  List<PathSegment> pathSegmentsToAnimate =
-      <PathSegment>[]; //defined by [range.start] and [range.end]
-  List<PathSegment> pathSegmentsToPaintAsBackground =
-      <PathSegment>[]; //defined by < [range.start]
+  List<Path> pathsToAnimate =
+      <Path>[]; //defined by [range.start] and [range.end]
+  List<Path> pathsToPaintAsBackground = <Path>[]; //defined by < [range.start]
 
   VoidCallback? onFinishAnimation;
 
@@ -145,16 +147,17 @@ abstract class AbstractAnimatedDrawingState extends State<AnimatedDrawing> {
   }
 
   PathPainter? buildForegroundPainter() {
-    if (pathSegmentsToAnimate.isEmpty) return null;
+    if (pathsToAnimate.isEmpty) return null;
     var builder = preparePathPainterBuilder(widget.lineAnimation);
-    builder.setPathSegments(pathSegmentsToAnimate);
+    builder.setPaths(pathsToAnimate);
+    builder.setPathSegments(pathSegments);
     return builder.build();
   }
 
   PathPainter? buildBackgroundPainter() {
-    if (pathSegmentsToPaintAsBackground.isEmpty) return null;
+    if (pathsToPaintAsBackground.isEmpty) return null;
     var builder = preparePathPainterBuilder();
-    builder.setPathSegments(pathSegmentsToPaintAsBackground);
+    builder.setPaths(pathsToPaintAsBackground);
     return builder.build();
   }
 
@@ -170,30 +173,31 @@ abstract class AbstractAnimatedDrawingState extends State<AnimatedDrawing> {
   }
 
   //TODO refactor to be range not null
+  // TODO(hari): Bring back background painting
   void assignPathSegmentsToPainters() {
-    if (pathSegments.isEmpty) return;
+    if (paths.isEmpty) return;
 
-    if (widget.range == null) {
-      pathSegmentsToAnimate = pathSegments;
-      range = null;
-      pathSegmentsToPaintAsBackground.clear();
-      return;
-    }
+    // if (widget.range == null) {
+    pathsToAnimate = paths;
+    range = null;
+    pathsToPaintAsBackground.clear();
+    return;
+    // }
 
-    if (widget.range != range) {
-      checkValidRange();
+    // if (widget.range != range) {
+    //   checkValidRange();
 
-      pathSegmentsToPaintAsBackground = pathSegments
-          .where((x) => x.pathIndex < widget.range!.start!)
-          .toList();
+    //   // pathsToPaintAsBackground =
+    //   //     paths.where((x) => x.pathIndex < widget.range!.start!).toList();
 
-      pathSegmentsToAnimate = pathSegments
-          .where((x) => (x.pathIndex >= widget.range!.start! &&
-              x.pathIndex <= widget.range!.end!))
-          .toList();
+    //   // pathsToAnimate = paths
+    //   //     .where((x) => (x.pathIndex >= widget.range!.start! &&
+    //   //         x.pathIndex <= widget.range!.end!))
+    //   //     .toList();
+    //   pathsToAnimate = paths;
 
-      range = widget.range;
-    }
+    //   range = widget.range;
+    // }
   }
 
   void checkValidRange() {
@@ -282,8 +286,8 @@ abstract class AbstractAnimatedDrawingState extends State<AnimatedDrawing> {
         //raw paths
         widget.paths.clear();
         widget.paths.addAll(parser.getPaths());
-        //corresponding segments
         pathSegments = parser.getPathSegments();
+        paths = parser.getPaths();
         assetPath = widget.assetPath;
       });
     });
