@@ -133,63 +133,17 @@ class OneByOnePainter extends PathPainter {
           break;
         }
       }
-      //[2] Extract subPath of last path which breaks the upperBound
-      // var subPathLength = upperBound - currentLength;
-      // var lastPathSegment = pathSegments![currentIndex];
 
-      // var subPath = lastPathSegment.path
-      //     .computeMetrics()
-      //     .first
-      //     .extractPath(0, subPathLength);
-      // paintedSegmentIndex = currentIndex;
-      // _paintedLength = currentLength;
-      // // //[3] Paint all selected paths to canvas
-      // Paint paint;
-      // late Path tmp;
-      // if (animation.value == 1.0) {
-      //   //hotfix: to ensure callback for last segment TODO not pretty
-      //   toPaint.clear();
-      //   toPaint.addAll(pathSegments!);
-      // } else {
-      //   //[3.1] Add last subPath temporarily
-      //   tmp = Path.from(lastPathSegment.path);
-      //   lastPathSegment.path = subPath;
-      //   toPaint.add(lastPathSegment);
-      // }
-      // print(toPaint);
-      // //[3.2] Restore rendering order - last path element in original PathOrder should be last painted -> most visible
-      // //[3.3] Paint elements
-      // (toPaint..sort(Extractor.getComparator(PathOrders.original)))
-      //     .forEach((segment) {
-      //   paint = (paints.isNotEmpty)
-      //       ? paints[segment.pathIndex % paints.length]
-      //       : (Paint() //Paint per path TODO implement Paint per PathSegment?
-      //         //TODO Debug disappearing first lineSegment
-      //         // ..color = (segment.relativeIndex == 0 && segment.pathIndex== 0) ? Colors.red : ((segment.relativeIndex == 1) ? Colors.blue : segment.color)
-      //         ..color = segment.color
-      //         ..style = PaintingStyle.stroke
-      //         ..strokeCap = StrokeCap.square
-      //         ..strokeWidth = segment.strokeWidth);
-      //   canvas.drawPath(segment.path, paint);
-      // });
-
-      // if (animation.value != 1.0) {
-      //   //[3.4] Remove last subPath
-      //   toPaint.remove(lastPathSegment);
-      //   lastPathSegment.path = tmp;
-      // }
-
-      // TODO(hari): Read this from the SVG
       final localPaths = paths;
       if (localPaths == null) {
         return;
       }
 
-      final completedPath = Path();
-
       double drawnLength = 0;
       Path partialCombined;
+      // TODO(hari): Read this from the SVG
       partialCombined = Path()..fillType = PathFillType.evenOdd;
+      List<Path> completedPaths = [];
 
       for (final path in localPaths) {
         // Reset partial path in each iteration
@@ -215,23 +169,25 @@ class OneByOnePainter extends PathPainter {
         }
 
         // Store paths that have been completely drawn in current state separately
-        completedPath.addPath(path, Offset.zero);
+        completedPaths.add(path..fillType = PathFillType.evenOdd);
+      }
+
+      // The SVG spec expects each path to be drawn separately
+      for (final path in completedPaths) {
+        canvas.drawPath(path, paints[0]);
       }
 
       if (upperBound == totalPathSum) {
-        canvas.drawPath(completedPath, paints[0]);
         canvas.drawPath(partialCombined, paints[0]);
       } else {
+        // Paths that aren't drawn fully aren't filled in to avoid weird
+        // in progress states
         final localPaint = Paint.from(paints[0]);
-        canvas.drawPath(completedPath, localPaint);
         canvas.drawPath(
           partialCombined,
           localPaint..style = PaintingStyle.stroke,
         );
       }
-
-      // Paths that aren't drawn fully aren't filled in to avoid weird
-      // in progress states
 
       //TODO Problem: Path drawning is a continous iteration over the length of all segments. To make a callback which fires exactly when path is drawn is therefore not possible (I can only ensure one of the two cases: 1) segment is completely drawn 2) no next segment was started to be drawn yet - For now: 1)
       // double remainingLength = lastPathSegment.length - subPathLength;
