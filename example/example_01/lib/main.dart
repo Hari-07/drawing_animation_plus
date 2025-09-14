@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:drawing_animation/drawing_animation.dart';
 import 'package:flutter/material.dart';
 
@@ -35,27 +34,6 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
           child: Column(children: <Widget>[
         //Simplfied AnimatedDrawing using Flutter Path objects
-        Expanded(
-            child: AnimatedDrawing.paths(
-          [
-            (Path()
-                  ..addOval(Rect.fromCircle(center: Offset.zero, radius: 75.0)))
-                .transform(Matrix4.rotationX(-pi)
-                    .storage), //A circle which is slightly rotated
-          ],
-          paints: [
-            Paint()..style = PaintingStyle.stroke,
-          ],
-          run: run,
-          animationOrder: PathOrders.original,
-          duration: Duration(seconds: 2),
-          lineAnimation: LineAnimation.oneByOne,
-          animationCurve: Curves.linear,
-          onFinish: () => setState(() {
-            run = false;
-          }),
-        )),
-
         //Simplfied AnimatedDrawing parsing Path objects from an Svg asset
         Expanded(
             child: AnimatedDrawing.svg(
@@ -67,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onFinish: () => setState(() {
             run = false;
           }),
+          paints: [Paint()..color = Colors.red],
         )),
       ])),
     );
