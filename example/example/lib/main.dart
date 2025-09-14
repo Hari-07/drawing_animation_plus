@@ -1,3 +1,5 @@
+import 'package:example/widgets/multi_path_one_by_one.dart';
+import 'package:example/widgets/simple_single_path.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
@@ -16,7 +18,32 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool run = true;
-  int activeIndex = 0;
+  int activeIndex = 1;
+
+  late List<SVGWidget> examples = [
+    SVGWidget(
+      label: 'Simple Single Path SVG',
+      child: SimpleSinglePath(
+        run: run,
+        onFinish: () {
+          setState(() {
+            run = false;
+          });
+        },
+      ),
+    ),
+    SVGWidget(
+      label: 'Multiple Path SVG: One by One',
+      child: MultiPathOneByOne(
+        run: run,
+        onFinish: () {
+          setState(() {
+            run = false;
+          });
+        },
+      ),
+    ),
+  ];
 
   @override
   void initState() {
@@ -26,66 +53,46 @@ class _MyHomePageState extends State<MyHomePage> {
   void setIndex(int index) {
     setState(() {
       activeIndex = index;
+      run = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(title: Text(examples[activeIndex].label)),
       floatingActionButton: FloatingActionButton(
-          onPressed: () => setState(() {
-                run = !run;
-              }),
-          child: Icon((run) ? Icons.stop : Icons.play_arrow)),
+        onPressed: () => setState(() {
+          run = !run;
+        }),
+        child: Icon((run) ? Icons.stop : Icons.play_arrow),
+      ),
       drawer: Drawer(
-        child: ListView(
-          // padding: EdgeInsets.zero,
-          children: [
-            ListTile(
-              title: const Text('Simple Single Path SVG'),
-              onTap: () => setIndex(0),
-            ),
-            ListTile(
-              title: const Text('Multiple Path SVG: One by One'),
-              onTap: () => setIndex(1),
-            ),
-            ListTile(
-              title: const Text('Multiple Path SVG: All at Once'),
-              onTap: () => setIndex(2),
-            ),
-          ],
+        child: ListView.builder(
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text(examples[index].label),
+              onTap: () => setIndex(index),
+            );
+          },
+          itemCount: examples.length,
         ),
       ),
       body: Center(
-        child: Column(
-          children: [
-            Expanded(child: switch (expression) {
-              pattern => value,
-            }),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [Expanded(child: examples[activeIndex].child)],
+          ),
         ),
       ),
     );
   }
 }
 
+class SVGWidget {
+  SVGWidget({required this.child, required this.label});
 
-
-// body: Center(
-//           child: Column(children: <Widget>[
-//         //Simplfied AnimatedDrawing using Flutter Path objects
-//         //Simplfied AnimatedDrawing parsing Path objects from an Svg asset
-//         Expanded(
-//             child: AnimatedDrawing.svg(
-//           'assets/circle.svg',
-//           run: run,
-//           duration: Duration(seconds: 2),
-//           lineAnimation: LineAnimation.oneByOne,
-//           animationCurve: Curves.linear,
-//           onFinish: () => setState(() {
-//             run = false;
-//           }),
-//           paints: [Paint()..color = Colors.red],
-//         )),
-//       ])),
+  final Widget child;
+  final String label;
+}
