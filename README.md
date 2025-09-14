@@ -1,4 +1,7 @@
-# drawing_animation [![Pub](https://img.shields.io/pub/v/drawing_animation.svg)](https://pub.dartlang.org/packages/drawing_animation) [![awesome](https://img.shields.io/badge/Awesome-Flutter-blue.svg?longCache=true&style=flat-square)](https://github.com/Solido/awesome-flutter)
+# drawing_animation_plus 
+<!-- [![Pub](https://img.shields.io/pub/v/drawing_animation.svg)](https://pub.dartlang.org/packages/drawing_animation)  -->
+
+> This is an improved fork of [drawing_animation](https://pub.dev/packages/drawing_animation)
 
 |**From static SVG assets**  | | See more examples in the [showcasing app](https://github.com/biocarl/drawing_animation/tree/master/example/example_03). |
 | :---             |     :---:                   |     :---:     |
