@@ -185,9 +185,17 @@ class OneByOnePainter extends PathPainter {
         return;
       }
 
-      final partialCombined = Path()..fillType = PathFillType.evenOdd;
+      final completedPath = Path();
+
       double drawnLength = 0;
+      Path partialCombined;
+      partialCombined = Path()..fillType = PathFillType.evenOdd;
+
       for (final path in localPaths) {
+        // Reset partial path in each iteration
+        // If this path isn't fully drawn it will be in [partialCombined]
+        // when we exit the loop
+        partialCombined = Path()..fillType = PathFillType.evenOdd;
         for (final metric in path.computeMetrics()) {
           if (upperBound > drawnLength + metric.length) {
             final partial = metric.extractPath(0, metric.length);
@@ -205,8 +213,25 @@ class OneByOnePainter extends PathPainter {
         if (drawnLength == upperBound) {
           break;
         }
+
+        // Store paths that have been completely drawn in current state separately
+        completedPath.addPath(path, Offset.zero);
       }
-      canvas.drawPath(partialCombined, paints[0]);
+
+      if (upperBound == totalPathSum) {
+        canvas.drawPath(completedPath, paints[0]);
+        canvas.drawPath(partialCombined, paints[0]);
+      } else {
+        final localPaint = Paint.from(paints[0]);
+        canvas.drawPath(completedPath, localPaint);
+        canvas.drawPath(
+          partialCombined,
+          localPaint..style = PaintingStyle.stroke,
+        );
+      }
+
+      // Paths that aren't drawn fully aren't filled in to avoid weird
+      // in progress states
 
       //TODO Problem: Path drawning is a continous iteration over the length of all segments. To make a callback which fires exactly when path is drawn is therefore not possible (I can only ensure one of the two cases: 1) segment is completely drawn 2) no next segment was started to be drawn yet - For now: 1)
       // double remainingLength = lastPathSegment.length - subPathLength;
